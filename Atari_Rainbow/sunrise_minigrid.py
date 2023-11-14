@@ -34,8 +34,8 @@ parser.add_argument('--disable-cuda', default=False, action='store_true', help='
 parser.add_argument('--game', type=str, default='MiniGrid-DistShift1-v0', help='minigrid')
 parser.add_argument('--T-max', type=int, default=int(50e6), metavar='STEPS', help='Number of training steps (4x number of frames)')
 parser.add_argument('--max-episode-length', type=int, default=int(108e3), metavar='LENGTH', help='Max episode length in game frames (0 to disable)')
-parser.add_argument('--history-length', type=int, default=4, metavar='T', help='Number of consecutive states processed')
-parser.add_argument('--architecture', type=str, default='canonical', choices=['canonical', 'data-efficient'], metavar='ARCH', help='Network architecture')
+parser.add_argument('--history-length', type=int, default=1, metavar='T', help='Number of consecutive states processed')
+parser.add_argument('--architecture', type=str, default='mlp', choices=['canonical', 'data-efficient'], metavar='ARCH', help='Network architecture')
 parser.add_argument('--hidden-size', type=int, default=512, metavar='SIZE', help='Network hidden size')
 parser.add_argument('--noisy-std', type=float, default=0.1, metavar='σ', help='Initial standard deviation of noisy linear layers')
 parser.add_argument('--atoms', type=int, default=51, metavar='C', help='Discretised size of value distribution')
@@ -162,6 +162,7 @@ while T < args.evaluation_size:
         state = torch.Tensor(state)
         done = False
     next_state, r, done, truncated, info = env.step(np.random.randint(0, action_space))
+    done = done or truncated
     next_state = torch.Tensor(next_state)
     val_mem.append(state.unsqueeze(0), None, None, done)
     state = next_state
@@ -186,7 +187,8 @@ else:
     
     for T in trange(1, args.T_max + 1):
         if done or truncated:
-            state, done = env.reset(seed=42), False
+            state, info = env.reset(seed=42)
+            done = False
             state = torch.Tensor(state).to(args.device)
             selected_en_index = np.random.randint(args.num_ensemble)
 
@@ -218,11 +220,12 @@ else:
             action = ucb_score.argmax(1)[0].item()
         else:
             action = dqn_list[selected_en_index].act(state)  # Choose an action greedily (with noisy weights)
-        next_state, reward, done,  info = env.step(action)  # Step
+        next_state, reward, done, turncated,  info = env.step(action)  # Step
         next_state = torch.Tensor(next_state).to(args.device)
         if args.reward_clip > 0:
             reward = max(min(reward, args.reward_clip), -args.reward_clip)  # Clip rewards
-        mem.append(state, action, reward, done)  # Append transition to memory
+        done = done or truncated
+        mem.append(state.unsqueeze(0), action, reward, done)  # Append transition to memory
         # Train and test
         if T >= args.learn_start:
             mem.priority_weight = min(mem.priority_weight + priority_weight_increase, 1)  # Anneal importance sampling weight β to 1

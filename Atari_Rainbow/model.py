@@ -4,7 +4,7 @@ import math
 import torch
 from torch import nn
 from torch.nn import functional as F
-
+import numpy as np
 
 # Factorised NoisyLinear layer with bias
 class NoisyLinear(nn.Module):
@@ -47,7 +47,7 @@ class NoisyLinear(nn.Module):
 
 
 class DQN(nn.Module):
-  def __init__(self, args, action_space):
+  def __init__(self, args, action_space, state_space= None):
     super(DQN, self).__init__()
     self.atoms = args.atoms
     self.action_space = action_space
@@ -61,6 +61,11 @@ class DQN(nn.Module):
       self.convs = nn.Sequential(nn.Conv2d(args.history_length, 32, 5, stride=5, padding=0), nn.ReLU(),
                                  nn.Conv2d(32, 64, 5, stride=5, padding=0), nn.ReLU())
       self.conv_output_size = 576
+
+    elif args.architecture == 'mlp':
+      self.convs = nn.Sequential(nn.Flatten(), nn.Linear(np.prod(state_space), 512), nn.ReLU(),
+                                 nn.Linear(512, 512), nn.ReLU())
+      self.conv_output_size = 512
     self.fc_h_v = NoisyLinear(self.conv_output_size, args.hidden_size, std_init=args.noisy_std)
     self.fc_h_a = NoisyLinear(self.conv_output_size, args.hidden_size, std_init=args.noisy_std)
     self.fc_z_v = NoisyLinear(args.hidden_size, self.atoms, std_init=args.noisy_std)
