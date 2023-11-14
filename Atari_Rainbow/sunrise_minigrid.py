@@ -149,12 +149,12 @@ if args.model is not None and not args.evaluate:
     mem = load_memory(args.memory, args.disable_bzip_memory)
 
 else:
-    mem = ReplayMemory(args, args.memory_capacity, args.beta_mean, args.num_ensemble)
+    mem = ReplayMemory(args, args.memory_capacity, args.beta_mean, args.num_ensemble, env.observation_space.shape)
 
 priority_weight_increase = (1 - args.priority_weight) / (args.T_max - args.learn_start)
 
 # Construct validation memory
-val_mem = ReplayMemory(args, args.evaluation_size, args.beta_mean, args.num_ensemble)
+val_mem = ReplayMemory(args, args.evaluation_size, args.beta_mean, args.num_ensemble, env.observation_space.shape)
 T, done = 0, True
 while T < args.evaluation_size:
     if done or truncated:
