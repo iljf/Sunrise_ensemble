@@ -54,8 +54,10 @@ parser.add_argument('--learning-rate', type=float, default=0.0000625, metavar='�
 parser.add_argument('--adam-eps', type=float, default=1.5e-4, metavar='ε', help='Adam epsilon')
 parser.add_argument('--batch-size', type=int, default=32, metavar='SIZE', help='Batch size')
 parser.add_argument('--learn-start', type=int, default=int(20e1), metavar='STEPS', help='Number of steps before starting training')
+# parser.add_argument('--learn-start', type=int, default=int(2000), metavar='STEPS', help='Number of steps before starting training')
 parser.add_argument('--evaluate', action='store_true', help='Evaluate only')
 parser.add_argument('--evaluation-interval', type=int, default=200000, metavar='STEPS', help='Number of training steps between evaluations')
+# parser.add_argument('--evaluation-interval', type=int, default=2000, metavar='STEPS', help='Number of training steps between evaluations')
 parser.add_argument('--evaluation-episodes', type=int, default=10, metavar='N', help='Number of evaluation episodes to average over')
 # TODO: Note that DeepMind's evaluation method is running the latest agent for 500K frames ever every 1M steps
 parser.add_argument('--evaluation-size', type=int, default=500, metavar='N', help='Number of transitions to use for validating Q')
@@ -76,10 +78,10 @@ parser.add_argument('--ucb-train', type=float, default=0.0, help='coeff for UCB 
 args = parser.parse_args()
 
 # wandb intialize
-# wandb.init(project="Sunrise_minigrid_Jws",
-#            name=args.game + str(datetime.now()),
-#            config=args.__dict__
-#            )
+wandb.init(project="Sunrise_minigrid_Jws",
+           name=args.game + str(datetime.now()),
+           config=args.__dict__
+           )
 
 
 print(' ' * 26 + 'Options')
@@ -168,7 +170,7 @@ while T < args.evaluation_size:
     state = next_state
     T += 1
 
-    # wandb.log({'Replay_memory/reward':r})
+    wandb.log({'Replay_memory/reward':r})
 
 if args.evaluate:
     for en_index in range(args.num_ensemble):
@@ -187,6 +189,10 @@ else:
     
     for T in trange(1, args.T_max + 1):
         if done or truncated:
+            # print episode rewards
+            print('episode reward: ', env.total_rewards)
+            wandb.log({'training/ep_reward': env.total_rewards
+                       })
             state, info = env.reset(seed=42)
             done = False
             state = torch.Tensor(state).to(args.device)
@@ -226,6 +232,9 @@ else:
             reward = max(min(reward, args.reward_clip), -args.reward_clip)  # Clip rewards
         done = done or truncated
         mem.append(state.unsqueeze(0), action, reward, done)  # Append transition to memory
+
+        wandb.log({'training/reward': reward
+                   })
         # Train and test
         if T >= args.learn_start:
             mem.priority_weight = min(mem.priority_weight + priority_weight_increase, 1)  # Anneal importance sampling weight β to 1
@@ -281,6 +290,12 @@ else:
                 log('T = ' + str(T) + ' / ' + str(args.T_max) + ' | Avg. reward: ' + str(avg_reward) + ' | Avg. Q: ' + str(avg_Q))
                 for en_index in range(args.num_ensemble):
                     dqn_list[en_index].train()  # Set DQN (online network) back to training mode
+
+                    wandb.log({'eval/reward': reward,
+                               'eval/Average_reward': avg_reward,
+                               'eval/timestep': T,
+                               'eval/Q-value': avg_Q
+                               })
 
                 # If memory path provided, save it
                 if args.memory is not None:

@@ -31,7 +31,8 @@ def test_minigrid(args, T, dqn, val_mem, metrics, results_dir, num_ensemble, eva
     for _ in range(args.evaluation_episodes):
         while True:
             if done:
-                state, reward_sum, done = env.reset(), 0, False
+                state, info = env.reset()
+                reward_sum, _ = 0, False
                 state = torch.Tensor(state).to(args.device)
             q_tot = 0
             for en_index in range(num_ensemble):
@@ -41,7 +42,7 @@ def test_minigrid(args, T, dqn, val_mem, metrics, results_dir, num_ensemble, eva
                     q_tot += dqn[en_index].ensemble_q(state)
             action = q_tot.argmax(1).item()
 
-            state, reward, done, _ = env.step(action)  # Step
+            state, reward, done, truncated, _ = env.step(action)  # Step
             state = torch.Tensor(state).to(args.device)
             reward_sum += reward
             if args.render:
