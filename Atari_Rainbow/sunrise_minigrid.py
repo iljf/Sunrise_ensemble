@@ -31,7 +31,7 @@ parser = argparse.ArgumentParser(description='Rainbow')
 parser.add_argument('--id', type=str, default='boot_rainbow', help='Experiment ID')
 parser.add_argument('--seed', type=int, default=123, help='Random seed')
 parser.add_argument('--disable-cuda', default=False, action='store_true', help='Disable CUDA')
-parser.add_argument('--game', type=str, default='MiniGrid-LavaCrossingS9N1-v0', help='minigrid')
+parser.add_argument('--game', type=str, default='MiniGrid-LavaGapS5-v0', help='minigrid')
 # parser.add_argument('--T-max', type=int, default=int(50e6), metavar='STEPS', help='Number of training steps (4x number of frames)')
 parser.add_argument('--T-max', type=int, default=int(5e6), metavar='STEPS', help='Number of training steps (4x number of frames)')
 parser.add_argument('--max-episode-length', type=int, default=int(108e3), metavar='LENGTH', help='Max episode length in game frames (0 to disable)')
@@ -64,7 +64,7 @@ parser.add_argument('--batch-size', type=int, default=32, metavar='SIZE', help='
 parser.add_argument('--learn-start', type=int, default=int(10e3), metavar='STEPS', help='Number of steps before starting training')
 parser.add_argument('--evaluate', action='store_true', help='Evaluate only')
 # parser.add_argument('--evaluation-interval', type=int, default=200000, metavar='STEPS', help='Number of training steps between evaluations')
-parser.add_argument('--evaluation-interval', type=int, default=100000, metavar='STEPS', help='Number of training steps between evaluations')
+parser.add_argument('--evaluation-interval', type=int, default=10000, metavar='STEPS', help='Number of training steps between evaluations')
 parser.add_argument('--evaluation-episodes', type=int, default=10, metavar='N', help='Number of evaluation episodes to average over')
 # TODO: Note that DeepMind's evaluation method is running the latest agent for 500K frames ever every 1M steps
 # parser.add_argument('--evaluation-size', type=int, default=500, metavar='N', help='Number of transitions to use for validating Q')
@@ -74,7 +74,7 @@ parser.add_argument('--enable-cudnn', action='store_true', help='Enable cuDNN (f
 parser.add_argument('--checkpoint-interval', default=0, help='How often to checkpoint the model, defaults to 0 (never checkpoint)')
 parser.add_argument('--memory', help='Path to save/load the memory from')
 parser.add_argument('--disable-bzip-memory', action='store_true', help='Don\'t zip the memory file. Not recommended (zipping is a bit slower and much, much smaller)')
-parser.add_argument('--env-max-step', type=int, default=5000)
+parser.add_argument('--env-max-step', type=int, default=500)
 # ensemble
 parser.add_argument('--num-ensemble', type=int, default=3, metavar='N', help='Number of ensembles')
 parser.add_argument('--beta-mean', type=float, default=1.0, help='mean of bernoulli')
@@ -86,8 +86,8 @@ parser.add_argument('--ucb-train', type=float, default=0.0, help='coeff for UCB 
 args = parser.parse_args()
 
 # wandb intialize
-wandb.init(project="Sunrise_minigrid_Jws",
-           name=args.game + str(datetime.now()),
+wandb.init(project="Sunrise+Rainbow_minigrid",
+           name="Sunrise" + args.game + str(datetime.now()),
            config=args.__dict__
            )
 
@@ -139,9 +139,12 @@ def save_memory(memory, memory_path, disable_bzip):
 
 # Environment
 env = gym.make(args.game, render_mode = 'rgb_array')
-env = flatten_fullview_wrapperWrapper(env, reward_reg=5000, env_max_step=args.env_max_step)
-# env = AtariPreprocessing(env, screen_size=84)
-# env = FrameStack(env, 4)
+# env = flatten_fullview_wrapperWrapper(env, reward_reg=5000, env_max_step=args.env_max_step)
+env = RGBImgPartialObsWrapper(env)
+env = ImgObsWrapper(env)
+# env = ReturnWrapper(env)
+# env = AtariPreprocessing(env, screen_size=84) # atari
+# env = FrameStack(env, 4) # atari
 action_space = env.action_space.n
 
 # Agent
@@ -198,17 +201,21 @@ else:
     for T in trange(1, args.T_max + 1):
         if done or truncated:
             # print episode rewards
-            print('episode reward: ', env.total_rewards)
-            wandb.log({'training/ep_reward': env.total_rewards
-                       })
-            state, info = env.reset(seed=42)
-            done = False
+            # print('episode reward: ', env.total_rewards)
+            # wandb.log({'training/ep_reward': env.total_rewards
+            #            })
+            state, _ = env.reset(seed=42)
+            # done = False
             state = torch.Tensor(state).to(args.device)
+            eps = 0.1
             selected_en_index = np.random.randint(args.num_ensemble)
 
         if T % args.replay_frequency == 0:
             for en_index in range(args.num_ensemble):
                 dqn_list[en_index].reset_noise()  # Draw a new set of noisy weights
+
+        if np.random.rand() < eps:
+            action = np.random.randint(0, action_space)
         
         # UCB exploration
         if args.ucb_infer > 0:

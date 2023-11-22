@@ -18,8 +18,8 @@ from util_wrapper import *
 
 def test_minigrid(args, T, dqn, val_mem, metrics, results_dir, num_ensemble, evaluate=False):
     env = gym.make(args.game)
-    # env = FullyObsWrapper(env)
-    env = flatten_fullview_wrapperWrapper(env, reward_reg=5000, env_max_step=args.env_max_step)
+    env = FullyObsWrapper(env)
+    # env = flatten_fullview_wrapperWrapper(env, reward_reg=5000, env_max_step=args.env_max_step)
     env = ImgObsWrapper(env)  # Get rid of the 'mission' field
     # action_space = env.action_space.n
 
@@ -34,7 +34,7 @@ def test_minigrid(args, T, dqn, val_mem, metrics, results_dir, num_ensemble, eva
         while True:
             if done:
                 state, _ = env.reset()
-                reward_sum, _ = 0, False
+                reward_sum, done = 0, False
                 state = torch.Tensor(state).to(args.device)
             q_tot = 0
             for en_index in range(num_ensemble):

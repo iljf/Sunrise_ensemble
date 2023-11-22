@@ -6,7 +6,7 @@ import torch
 
 Transition = namedtuple('Transition', ('timestep', 'state', 'action', 'reward', 'nonterminal', 'mask'))
 # blank_trans = Transition(0, torch.zeros(84, 84, dtype=torch.uint8), None, 0, False, torch.zeros(5, dtype=torch.float32))
-blank_trans = Transition(0, torch.zeros(9,7,3, dtype=torch.uint8), None, 0, False, torch.zeros(5, dtype=torch.float32))
+blank_trans = Transition(0, torch.zeros(56,56,3, dtype=torch.uint8), None, 0, False, torch.zeros(5, dtype=torch.float32))
 # mask = torch.bernoulli(torch.Tensor([ber_mean]*num_ensemble))
 # Segment tree data structure where parent node values are sum/max of children node values
 class SegmentTree():
