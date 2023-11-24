@@ -87,7 +87,7 @@ args = parser.parse_args()
 
 # wandb intialize
 wandb.init(project="Sunrise+Rainbow_minigrid",
-           name="Sunrise" + args.game + str(datetime.now()),
+           name="Sunrise_" + args.game + str(datetime.now()),
            config=args.__dict__
            )
 
@@ -140,7 +140,7 @@ def save_memory(memory, memory_path, disable_bzip):
 # Environment
 env = gym.make(args.game, render_mode = 'rgb_array')
 # env = flatten_fullview_wrapperWrapper(env, reward_reg=5000, env_max_step=args.env_max_step)
-env = RGBImgPartialObsWrapper(env)
+env = FullyObsWrapper(env)
 env = ImgObsWrapper(env)
 # env = ReturnWrapper(env)
 # env = AtariPreprocessing(env, screen_size=84) # atari
