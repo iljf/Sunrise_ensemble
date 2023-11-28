@@ -144,3 +144,47 @@ def flatten_fullview_wrapperWrapper(env, reward_reg=5000, env_max_step=5000):
     env = FlattenWrapper(env)
     env = ReturnWrapper_wargs(env, reward_reg=reward_reg,  max_steps=env_max_step)
     return env
+
+
+class MaxstepWrapper():
+    def __init__(self, env, max_steps=1000):
+        super().__init__(env)
+        self.total_rewards = 0
+        self.steps = 0
+        self.max_steps = max_steps
+        self.step_discount = 1
+
+    def step(self, action):
+        obs, reward, done, truncated, info = self.env.step(action)
+        # reward = reward * self.multiplier - 1
+        self.total_rewards += reward
+        self.steps += 1
+
+        if self.max_steps > self.steps:
+            truncated = False
+        if done or truncated:
+            info['returns/episodic_reward'] = self.total_rewards
+            # if self.total_rewards != -1000:
+            #     self.total_rewards =0
+
+            info['returns/episodic_length'] = self.steps
+            # self.total_rewards = 0
+            # self.steps = 0
+        else:
+            info['returns/episodic_reward'] = None
+            info['returns/episodic_length'] = None
+
+        return obs, reward, done, truncated, info
+    def reset(self, *, seed=73060, options=None):
+        # super().__init__(env)
+        self.total_rewards = 0
+        self.steps = 0
+        obs, _ = self.env.reset(seed=seed, options=options)
+        return obs, _
+
+def flatten_MaxstepWrapperWrapper(env, reward_reg=5000, env_max_step=5000):
+    env.max_steps = env_max_step
+    env = FullyObsWrapper(env)
+    env = FlattenWrapper(env)
+    env = MaxstepWrapper(env,  max_steps=env_max_step)
+    return env

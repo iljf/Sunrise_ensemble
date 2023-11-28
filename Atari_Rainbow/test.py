@@ -18,9 +18,9 @@ from util_wrapper import *
 
 def test_minigrid(args, T, dqn, val_mem, metrics, results_dir, num_ensemble, evaluate=False):
     env = gym.make(args.game)
-    env = FullyObsWrapper(env)
-    # env = flatten_fullview_wrapperWrapper(env, reward_reg=5000, env_max_step=args.env_max_step)
-    env = ImgObsWrapper(env)  # Get rid of the 'mission' field
+    # env = FullyObsWrapper(env)
+    env = flatten_fullview_wrapperWrapper(env, reward_reg=5000, env_max_step=args.env_max_step)
+    # env = ImgObsWrapper(env)  # Get rid of the 'mission' field
     # action_space = env.action_space.n
 
     # env.eval()

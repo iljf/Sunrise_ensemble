@@ -31,7 +31,8 @@ parser = argparse.ArgumentParser(description='Rainbow')
 parser.add_argument('--id', type=str, default='boot_rainbow', help='Experiment ID')
 parser.add_argument('--seed', type=int, default=123, help='Random seed')
 parser.add_argument('--disable-cuda', default=False, action='store_true', help='Disable CUDA')
-parser.add_argument('--game', type=str, default='MiniGrid-LavaGapS5-v0', help='minigrid')
+# parser.add_argument('--game', type=str, default='MiniGrid-LavaGapS5-v0', help='minigrid')
+parser.add_argument('--game', type=str, default='MiniGrid-Empty-16x16-v0', help='minigrid')
 # parser.add_argument('--T-max', type=int, default=int(50e6), metavar='STEPS', help='Number of training steps (4x number of frames)')
 parser.add_argument('--T-max', type=int, default=int(5e6), metavar='STEPS', help='Number of training steps (4x number of frames)')
 parser.add_argument('--max-episode-length', type=int, default=int(108e3), metavar='LENGTH', help='Max episode length in game frames (0 to disable)')
@@ -139,9 +140,9 @@ def save_memory(memory, memory_path, disable_bzip):
 
 # Environment
 env = gym.make(args.game, render_mode = 'rgb_array')
-# env = flatten_fullview_wrapperWrapper(env, reward_reg=5000, env_max_step=args.env_max_step)
-env = FullyObsWrapper(env)
-env = ImgObsWrapper(env)
+env = flatten_fullview_wrapperWrapper(env, reward_reg=5000, env_max_step=args.env_max_step)
+# env = FullyObsWrapper(env)
+# env = ImgObsWrapper(env)
 # env = ReturnWrapper(env)
 # env = AtariPreprocessing(env, screen_size=84) # atari
 # env = FrameStack(env, 4) # atari
@@ -309,7 +310,7 @@ else:
                     wandb.log({'eval/reward': reward,
                                'eval/Average_reward': avg_reward,
                                'eval/timestep': T,
-                               'eval/Q-value': avg_Q
+                               '4eval/Q-value': avg_Q
                                })
 
                 # If memory path provided, save it
